@@ -21,13 +21,20 @@
     .header-right   { text-align: right; font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
     .header-right strong { display: block; font-size: 1.1rem; font-weight: 700; color: var(--accent); }
 
+    /* LOADING */
+    #loading-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 0.82rem; color: var(--muted); letter-spacing: 0.05em; }
+    #loading-overlay.hidden { display: none; }
+
     /* PROGRESS BAR ANUAL */
     .progress-wrap { margin-bottom: 32px; }
     .progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; font-size: 0.73rem; }
     .progress-header span:first-child { font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
     .progress-header span:last-child { font-weight: 700; color: var(--accent); font-size: 0.85rem; }
     .progress-track { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-    .progress-fill  { height: 100%; background: var(--accent); border-radius: 3px; }
+    .progress-fill  { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.6s ease; }
     .progress-months { display: flex; justify-content: space-between; margin-top: 6px; }
     .progress-months span { font-size: 0.68rem; color: var(--muted); }
     .progress-months span.active { color: var(--accent); font-weight: 600; }
@@ -89,6 +96,12 @@
 </head>
 <body>
 
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Cargando datos…</div>
+</div>
+
 <!-- HEADER -->
 <header>
   <div class="header-left">
@@ -108,7 +121,7 @@
     <span>Avance anual</span>
     <span id="prog-label"></span>
   </div>
-  <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+  <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
   <div class="progress-months" id="prog-months"></div>
 </div>
 
@@ -166,9 +179,9 @@
   </div>
 </div>
 
-<!-- FILA 3: Top 10 Proyectos × Categoría -->
+<!-- FILA 3: Top 15 Proyectos × Categoría -->
 <div class="card" style="margin-top:20px">
-  <div class="card-title">Top 10 proyectos × categoría</div>
+  <div class="card-title">Top 15 proyectos × categoría</div>
   <table class="crosstab" id="tblProy"></table>
 </div>
 
@@ -187,264 +200,359 @@
 </footer>
 
 <script>
-/* @@BEGIN_DATA@@ */
-const TOTAL         = 184;
-const RANGE_TEXT    = 'Enero — Junio 2026';
-const FECHA_FOOTER  = 'Datos al 9 de junio de 2026';
-const PROGRESS_PCT  = 50.0;
-const ACTIVE_MONTHS = [1, 2, 3, 4, 5, 6];
-const KPI_PICO_N    = 44;
-const KPI_PICO_MES  = 'Abril 2026';
-const KPI_PROM      = 31;
-const KPI_ACTIVOS   = 35;
-const KPI_LAST_N    = 1;
-const KPI_LAST_MES  = 'Junio';
-const KPI_PREV_MES  = 'Mayo';
-const KPI_DELTA     = -37;
-const N_INST        = 13;
+// ─────────────────────────────────────────────────────────────────
+//  CONFIGURACIÓN
+// ─────────────────────────────────────────────────────────────────
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRma60qfk_G5ZkhS0V6FBFFTFG-Q4fRp_vxA03pAB3I3qXikvS86KiydB5FmLdzyc3ojoJDKki7tMBC/pub?gid=749173118&single=true&output=csv';
 
-const CAT = [
-  { label: 'Gráficas',       color: '#1a3a5c' },
-  { label: 'Prensa',         color: '#c0392b' },
-  { label: 'Com Interna',    color: '#16a085' },
-  { label: 'Reels / Videos', color: '#8e44ad' },
-  { label: 'Web',            color: '#e67e22' },
-];
+const MES_MAP   = {ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,oct:10,nov:11,dic:12};
+const MES_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MES_ABR   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-const mesLabels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'];
-const mesData   = [28, 32, 41, 44, 38, 1];
-const mesDeltas = [null, +4, +9, +3, -6, -37];
-const catData   = [45, 48, 36, 30, 25];
-
-const INST = [
-  { name: 'Grupo Oroño', cat: [10, 12, 19, 7, 5] },
-  { name: 'GO San Nicolás', cat: [10, 9, 2, 0, 2] },
-  { name: 'S. Parque', cat: [3, 10, 2, 5, 1] },
-  { name: 'S. Niños', cat: [3, 7, 5, 3, 3] },
-  { name: 'ICR', cat: [6, 2, 2, 4, 2] },
-  { name: 'DMO', cat: [4, 3, 4, 1, 3] },
-  { name: 'Elas', cat: [1, 0, 0, 5, 4] },
-  { name: 'Fertya', cat: [3, 0, 1, 3, 1] },
-  { name: 'Maternidad Oroño', cat: [3, 2, 0, 0, 2] },
-  { name: 'GO Sanatorio Funes', cat: [1, 3, 0, 2, 1] },
-  { name: 'GO Mutual', cat: [0, 0, 1, 0, 0] },
-  { name: 'GO Neuro', cat: [1, 0, 0, 0, 0] },
-  { name: 'GO Kinesio', cat: [0, 0, 0, 0, 1] },
-];
-
-const PROY_CAT = [
-  { name: 'tarea', cats: [14, 11, 18, 3, 11], total: 57 },
-  { name: 'Cirugía Robótica', cats: [2, 6, 0, 4, 1], total: 13 },
-  { name: 'Apertura de centro médico zona sur', cats: [4, 4, 1, 0, 2], total: 11 },
-  { name: 'Residencias 2026', cats: [3, 1, 2, 3, 1], total: 10 },
-  { name: 'Unidad de Trasplante', cats: [2, 4, 1, 1, 1], total: 9 },
-  { name: 'Circuito Predeportivo', cats: [2, 5, 0, 0, 1], total: 8 },
-  { name: 'Kermesse GO', cats: [0, 0, 5, 2, 0], total: 7 },
-  { name: 'Campaña Una vez al año', cats: [1, 0, 0, 5, 0], total: 6 },
-  { name: 'Campaña Ecografías', cats: [1, 2, 0, 1, 1], total: 5 },
-  { name: 'Ginecología infantojuvenil', cats: [0, 2, 1, 1, 1], total: 5 },
-  { name: 'Odontología', cats: [2, 1, 0, 0, 1], total: 4 },
-  { name: 'Campaña Vacunación', cats: [1, 2, 1, 0, 0], total: 4 },
-  { name: 'Licitación centro médico', cats: [1, 1, 1, 0, 0], total: 3 },
-  { name: 'Fertilidad con IA', cats: [0, 0, 0, 3, 0], total: 3 },
-  { name: 'Campaña Papel Cero', cats: [0, 0, 1, 2, 0], total: 3 },
-];
-
-const PROYECTOS = [
-  { inst: 'Grupo Oroño', meses: [['Circuito escolar', 'Kermesse GO', 'tarea'], ['Cabeza y cuello', 'Campaña Ecografías', 'Kermesse GO', 'Unidad de Trasplante', 'tarea'], ['Circuito Predeportivo', 'Cáncer de colon', 'Kermesse GO', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea'], ['Cáncer de colon', 'Día del trabajador', 'Kermesse GO', 'Residencias 2026', 'Unidad de mastología', 'tarea'], ['Prode 2026', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea'], ['Prode 2026']] },
-  { inst: 'GO San Nicolás', meses: [['Licitación centro médico', 'Odontología'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo'], [], ['Apertura de centro médico zona sur'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo', 'Odontología', 'tarea'], []] },
-  { inst: 'S. Parque', meses: [['Cirugía Robótica'], ['Cirugía Robótica'], ['Cabeza y cuello', 'Cirugía Robótica', 'tarea'], ['Unidad de Trasplante', 'tarea'], ['Cirugía Robótica', 'tarea'], []] },
-  { inst: 'S. Niños', meses: [['Circuito Predeportivo', 'tarea'], ['Ginecología infantojuvenil', 'Oncología infantil', 'tarea'], ['Campaña Vacunación', 'Ginecología infantojuvenil', 'tarea'], ['Ginecología infantojuvenil', 'tarea'], ['Unidad de Trasplante'], []] },
-  { inst: 'ICR', meses: [[], ['Campaña Papel Cero', 'Cámara Gamma'], ['Campaña Papel Cero', 'ICR Estrategia de productos', 'ICR Manual de marca', 'Insuficiencia cardíaca', 'Proceso de Certificación ISO', 'tarea'], ['Proceso de Certificación ISO'], ['Hipertensión arterial', 'tarea'], []] },
-  { inst: 'DMO', meses: [['tarea'], ['tarea'], ['Resonador IA', 'tarea'], ['tarea'], ['DMO Posicionamiento de marca'], []] },
-  { inst: 'Elas', meses: [['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['tarea'], ['Campaña Una vez al año'], []] },
-  { inst: 'Fertya', meses: [['Fertilidad con IA', 'tarea'], ['FE Manual de marca'], [], ['Nueva web Fertya'], ['Fertilidad con IA', 'Nueva web Fertya'], []] },
-  { inst: 'Maternidad Oroño', meses: [['MO Estrategia y re-diseño redes', 'tarea'], ['tarea'], [], [], ['MO Estrategia y re-diseño redes', 'Parto humanizado'], []] },
-  { inst: 'GO Sanatorio Funes', meses: [[], ['Campaña Ecografías'], ['Campaña Ecografías', 'Campaña Vacunación'], ['Campaña Ecografías', 'Funes Video institucional'], ['Campaña Ecografías', 'tarea'], []] },
-  { inst: 'GO Mutual', meses: [['tarea'], [], [], [], [], []] },
-  { inst: 'GO Neuro', meses: [[], [], ['tarea'], [], [], []] },
-  { inst: 'GO Kinesio', meses: [[], [], [], ['Apertura de centro médico zona sur'], [], []] },
-];
-/* @@END_DATA@@ */
+const CATS_ORDER = ['Gráficas','Prensa','Com Interna','Reels / Videos','Web'];
+const CAT_COLORS = ['#1a3a5c','#c0392b','#16a085','#8e44ad','#e67e22'];
+const CAT = CATS_ORDER.map((label, i) => ({ label, color: CAT_COLORS[i] }));
 
 // ─────────────────────────────────────────────────────────────────
-//  CONSTANTES ESTÁTICAS
+//  CSV PARSER (soporta campos con comas entre comillas)
 // ─────────────────────────────────────────────────────────────────
-const MES_ABR = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function parseCSVRow(line) {
+  const cols = []; let cur = ''; let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cols.push(cur);
+  return cols;
+}
 
 // ─────────────────────────────────────────────────────────────────
-//  ACTUALIZACIÓN DEL DOM
+//  COLOR HELPER: gradiente para barras mensuales
 // ─────────────────────────────────────────────────────────────────
-document.getElementById('hdr-total').textContent   = TOTAL;
-document.getElementById('hdr-range').textContent   = RANGE_TEXT;
-document.getElementById('prog-label').textContent  = ACTIVE_MONTHS.length + ' de 12 meses — ' + PROGRESS_PCT + '%';
-document.getElementById('prog-fill').style.width   = PROGRESS_PCT + '%';
-document.getElementById('prog-months').innerHTML   = MES_ABR.map((m, i) =>
-  '<span' + (ACTIVE_MONTHS.includes(i + 1) ? ' class="active"' : '') + '>' + m + '</span>'
-).join('');
-document.getElementById('kpi-total').textContent   = TOTAL;
-document.getElementById('kpi-total-sub').innerHTML =
-  KPI_LAST_MES + ': ' + KPI_LAST_N + ' <span class="delta ' +
-  (KPI_DELTA >= 0 ? 'up' : 'down') + '">' +
-  (KPI_DELTA >= 0 ? '↑' : '↓') + Math.abs(KPI_DELTA) +
-  ' vs ' + KPI_PREV_MES + '</span>';
-document.getElementById('kpi-activos').textContent = KPI_ACTIVOS;
-document.getElementById('kpi-inst').textContent    = N_INST;
-document.getElementById('kpi-pico').textContent    = KPI_PICO_N;
-document.getElementById('kpi-pico-sub').textContent= KPI_PICO_MES;
-document.getElementById('kpi-prom').textContent    = KPI_PROM;
-document.getElementById('kpi-prom-sub').textContent= 'Sobre ' + ACTIVE_MONTHS.length + ' meses';
-document.getElementById('footer-date').textContent = FECHA_FOOTER;
-document.getElementById('proj-title').textContent  = 'Proyectos por institución · ' + RANGE_TEXT;
-document.getElementById('proj-head').innerHTML =
-  '<th>Institución</th>' + mesLabels.map(l => '<th>' + l + '</th>').join('');
+function barColor(i, total) {
+  const t = total <= 1 ? 0.5 : i / (total - 1);
+  const r = Math.round(184 + (26  - 184) * t);
+  const g = Math.round(221 + (58  - 221) * t);
+  const b = Math.round(240 + (92  - 240) * t);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
 
 // ─────────────────────────────────────────────────────────────────
-//  CHART.JS CONFIG
+//  FETCH + AGGREGATE
 // ─────────────────────────────────────────────────────────────────
-Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-Chart.defaults.color = '#6b6b67';
+async function loadAndRender() {
+  const overlay  = document.getElementById('loading-overlay');
+  const loadText = document.getElementById('loading-text');
 
-/* ── CHART 1: Mensual con delta labels ── */
-const deltaPlugin = {
-  id: 'deltaLabels',
-  afterDatasetsDraw(chart) {
-    const { ctx, scales: { x, y } } = chart;
-    const meta = chart.getDatasetMeta(0);
-    meta.data.forEach((bar, i) => {
-      const d = mesDeltas[i];
-      if (d == null) return;
-      const label = (d > 0 ? '▲' : '▼') + Math.abs(d);
-      ctx.save();
-      ctx.font = '600 10px Segoe UI, sans-serif';
-      ctx.fillStyle = d >= 0 ? '#16a085' : '#c0392b';
-      ctx.textAlign = 'center';
-      ctx.fillText(label, bar.x, bar.y - 6);
-      ctx.restore();
+  try {
+    // Cache-bust para que el browser no sirva datos viejos
+    const resp = await fetch(CSV_URL + '&_t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) throw new Error('CSV vacío o sin datos');
+
+    // Detectar columnas por nombre de header
+    const headers = parseCSVRow(lines[0]).map(h => h.trim().toLowerCase());
+    const colFecha = headers.findIndex(h => /fecha/.test(h));
+    const colInst  = headers.findIndex(h => /institu/.test(h));
+    const colProy  = headers.findIndex(h => /proyecto/.test(h));
+    const colCat   = headers.findIndex(h => /categor/.test(h));
+
+    // Acumuladores
+    const mesCnt  = {};   // mesNum → count
+    const catCnt  = {};   // cat    → count
+    const instMap = {};   // inst   → { total, cats:{cat→n} }
+    const proyMap = {};   // proy   → { total, cats:{cat→n} }
+    const instMes = {};   // inst   → mesNum → Set<proy>
+
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const row = parseCSVRow(lines[i]);
+
+      const fechaRaw = (colFecha >= 0 ? row[colFecha] : '').trim();
+      const inst     = (colInst  >= 0 ? row[colInst]  : '').trim();
+      const proy     = (colProy  >= 0 ? row[colProy]  : '').trim();
+      const cat      = (colCat   >= 0 ? row[colCat]   : '').trim();
+
+      const mMatch = fechaRaw.match(/^([a-záéíóú]+)/i);
+      if (!mMatch) continue;
+      const mesNum = MES_MAP[mMatch[1].toLowerCase().substring(0, 3)];
+      if (!mesNum) continue;
+
+      // mes
+      mesCnt[mesNum] = (mesCnt[mesNum] || 0) + 1;
+
+      // cat
+      if (cat) catCnt[cat] = (catCnt[cat] || 0) + 1;
+
+      // institución
+      if (inst) {
+        if (!instMap[inst]) instMap[inst] = { total: 0, cats: {} };
+        instMap[inst].total++;
+        if (cat) instMap[inst].cats[cat] = (instMap[inst].cats[cat] || 0) + 1;
+      }
+
+      // proyecto
+      if (proy) {
+        if (!proyMap[proy]) proyMap[proy] = { total: 0, cats: {} };
+        proyMap[proy].total++;
+        if (cat) proyMap[proy].cats[cat] = (proyMap[proy].cats[cat] || 0) + 1;
+      }
+
+      // inst × mes
+      if (inst) {
+        if (!instMes[inst]) instMes[inst] = {};
+        if (!instMes[inst][mesNum]) instMes[inst][mesNum] = new Set();
+        if (proy) instMes[inst][mesNum].add(proy);
+      }
+    }
+
+    // ── Meses activos ordenados
+    const activeMeses  = Object.keys(mesCnt).map(Number).sort((a, b) => a - b);
+    const mesData      = activeMeses.map(m => mesCnt[m]);
+    const mesLabels    = activeMeses.map(m => MES_NAMES[m - 1]);
+    const mesDeltas    = mesData.map((n, i) => i === 0 ? null : n - mesData[i - 1]);
+    const barColors    = mesData.map((_, i) => barColor(i, mesData.length));
+
+    // ── Categorías (orden fijo)
+    const catData = CATS_ORDER.map(c => catCnt[c] || 0);
+
+    // ── Total
+    const total = mesData.reduce((a, b) => a + b, 0);
+
+    // ── KPIs
+    const nInst      = Object.keys(instMap).length;
+    const proyActivos = Object.keys(proyMap).length;
+    const lastMesNum = activeMeses[activeMeses.length - 1];
+    const prevMesNum = activeMeses.length > 1 ? activeMeses[activeMeses.length - 2] : null;
+    const lastN      = mesCnt[lastMesNum] || 0;
+    const prevN      = prevMesNum ? (mesCnt[prevMesNum] || 0) : 0;
+    const delta      = prevMesNum ? lastN - prevN : 0;
+    const picoN      = Math.max(...Object.values(mesCnt));
+    const picoMes    = MES_NAMES[Number(Object.entries(mesCnt).find(([, n]) => n === picoN)[0]) - 1] + ' 2026';
+    const prom       = Math.round(total / activeMeses.length);
+    const progressPct = Math.round(activeMeses.length / 12 * 1000) / 10;
+
+    // ── Fecha footer (hoy)
+    const hoy = new Date();
+    const meses_es = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const fechaFooter = 'Datos al ' + hoy.getDate() + ' de ' + meses_es[hoy.getMonth()] + ' de ' + hoy.getFullYear();
+
+    // ── Rango texto
+    const rangeText = mesLabels[0] + (mesLabels.length > 1 ? ' — ' + mesLabels[mesLabels.length - 1] : '') + ' 2026';
+
+    // ── Instituciones (ordenadas por total desc)
+    const instArr = Object.entries(instMap)
+      .sort((a, b) => b[1].total - a[1].total)
+      .map(([name, d]) => ({ name, cat: CATS_ORDER.map(c => d.cats[c] || 0) }));
+
+    // ── Top 15 proyectos × categoría
+    const top15 = Object.entries(proyMap)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 15)
+      .map(([name, d]) => ({
+        name,
+        cats: CATS_ORDER.map(c => d.cats[c] || 0),
+        total: d.total
+      }));
+
+    // ── Tabla proyectos por institución × mes
+    const proyectosArr = instArr.map(({ name: inst }) => ({
+      inst,
+      meses: activeMeses.map(m => {
+        const s = instMes[inst] && instMes[inst][m];
+        return s ? [...s].sort() : [];
+      })
+    }));
+
+    // Ocultar overlay
+    overlay.classList.add('hidden');
+
+    render({
+      total, rangeText, fechaFooter, progressPct,
+      activeMeses, mesLabels, mesData, mesDeltas, barColors,
+      catData, instArr, top15, proyectosArr,
+      nInst, proyActivos, lastN,
+      lastMesLabel: MES_NAMES[lastMesNum - 1],
+      prevMesLabel: prevMesNum ? MES_NAMES[prevMesNum - 1] : '',
+      delta, picoN, picoMes, prom
     });
+
+  } catch (e) {
+    loadText.textContent = '⚠ Error al cargar datos: ' + e.message;
+    console.error(e);
   }
-};
+}
 
-new Chart(document.getElementById('chartMes'), {
-  type: 'bar',
-  plugins: [deltaPlugin],
-  data: {
-    labels: mesLabels,
-    datasets: [{
-      data: mesData,
-      backgroundColor: ['#b8ddf0','#7ec8e3','#4a9fd4','#1a3a5c','#2d6a9f'],
-      borderRadius: 3, borderSkipped: false,
-    }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, border: { display: false } },
-      y: { beginAtZero: true, grid: { color: '#e2e2de' }, border: { display: false }, ticks: { stepSize: 10 } }
-    }
-  }
-});
+// ─────────────────────────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────────────────────────
+function render(d) {
+  const {
+    total, rangeText, fechaFooter, progressPct,
+    activeMeses, mesLabels, mesData, mesDeltas, barColors,
+    catData, instArr, top15, proyectosArr,
+    nInst, proyActivos, lastN, lastMesLabel, prevMesLabel,
+    delta, picoN, picoMes, prom
+  } = d;
 
-/* ── CHART 2: Donut categorías ── */
-new Chart(document.getElementById('chartCat'), {
-  type: 'doughnut',
-  data: {
-    labels: CAT.map(c => c.label),
-    datasets: [{
-      data: catData,
-      backgroundColor: CAT.map(c => c.color),
-      borderWidth: 2, borderColor: '#fff', hoverOffset: 6,
-    }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false, cutout: '62%',
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11 },
-          generateLabels: chart => {
-            const d = chart.data;
-            return d.labels.map((label, i) => ({
-              text: label + '  —  ' + d.datasets[0].data[i],
-              fillStyle: d.datasets[0].backgroundColor[i],
-              strokeStyle: '#fff', lineWidth: 2, index: i,
-            }));
-          }
-        }
-      },
-      tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed + ' entregables (' + Math.round(ctx.parsed / TOTAL * 100) + '%)' } }
-    }
-  }
-});
-
-/* ── CHART 3: Instituciones apilado ── */
-new Chart(document.getElementById('chartInst'), {
-  type: 'bar',
-  data: {
-    labels: INST.map(i => i.name),
-    datasets: CAT.map((c, ci) => ({
-      label: c.label, data: INST.map(i => i.cat[ci]),
-      backgroundColor: c.color, borderWidth: 0,
-    }))
-  },
-  options: {
-    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11 } } } },
-    scales: {
-      x: { stacked: true, beginAtZero: true, grid: { color: '#e2e2de' }, border: { display: false }, ticks: { stepSize: 10 } },
-      y: { stacked: true, grid: { display: false }, border: { display: false } }
-    }
-  }
-});
-
-/* ── TABLA CROSS-TAB: Top 10 Proyectos × Categoría ── */
-(function() {
-  const tbl = document.getElementById('tblProy');
-  if (!tbl || !PROY_CAT) return;
-
-  // Encabezado
-  const headCells = CAT.map(c =>
-    '<th style="color:' + c.color + '">' + c.label + '</th>'
+  // ── DOM
+  document.getElementById('hdr-total').textContent   = total;
+  document.getElementById('hdr-range').textContent   = rangeText;
+  document.getElementById('prog-label').textContent  = activeMeses.length + ' de 12 meses — ' + progressPct + '%';
+  document.getElementById('prog-fill').style.width   = progressPct + '%';
+  document.getElementById('prog-months').innerHTML   = MES_ABR.map((m, i) =>
+    '<span' + (activeMeses.includes(i + 1) ? ' class="active"' : '') + '>' + m + '</span>'
   ).join('');
-  const thead = '<thead><tr><th>Proyecto</th>' + headCells + '<th class="total-head">Total</th></tr></thead>';
 
-  // Filas
-  const tbody = '<tbody>' + PROY_CAT.map(function(row, i) {
-    const cells = row.cats.map(function(n, ci) {
+  document.getElementById('kpi-total').textContent   = total;
+  document.getElementById('kpi-total-sub').innerHTML =
+    lastMesLabel + ': ' + lastN +
+    (prevMesLabel
+      ? ' <span class="delta ' + (delta >= 0 ? 'up' : 'down') + '">' +
+        (delta >= 0 ? '↑' : '↓') + Math.abs(delta) + ' vs ' + prevMesLabel + '</span>'
+      : '');
+  document.getElementById('kpi-activos').textContent = proyActivos;
+  document.getElementById('kpi-inst').textContent    = nInst;
+  document.getElementById('kpi-pico').textContent    = picoN;
+  document.getElementById('kpi-pico-sub').textContent= picoMes;
+  document.getElementById('kpi-prom').textContent    = prom;
+  document.getElementById('kpi-prom-sub').textContent= 'Sobre ' + activeMeses.length + ' meses';
+  document.getElementById('footer-date').textContent = fechaFooter;
+  document.getElementById('proj-title').textContent  = 'Proyectos por institución · ' + rangeText;
+  document.getElementById('proj-head').innerHTML     =
+    '<th>Institución</th>' + mesLabels.map(l => '<th>' + l + '</th>').join('');
+
+  // ── Chart.js defaults
+  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+  Chart.defaults.color = '#6b6b67';
+
+  // ── Chart 1: Mensual con delta labels
+  const deltaPlugin = {
+    id: 'deltaLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        const dd = mesDeltas[i];
+        if (dd == null) return;
+        const label = (dd > 0 ? '▲' : '▼') + Math.abs(dd);
+        ctx.save();
+        ctx.font = '600 10px Segoe UI, sans-serif';
+        ctx.fillStyle = dd >= 0 ? '#16a085' : '#c0392b';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, bar.x, bar.y - 6);
+        ctx.restore();
+      });
+    }
+  };
+
+  new Chart(document.getElementById('chartMes'), {
+    type: 'bar',
+    plugins: [deltaPlugin],
+    data: {
+      labels: mesLabels,
+      datasets: [{ data: mesData, backgroundColor: barColors, borderRadius: 3, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { beginAtZero: true, grid: { color: '#e2e2de' }, border: { display: false }, ticks: { stepSize: 10 } }
+      }
+    }
+  });
+
+  // ── Chart 2: Donut categorías
+  new Chart(document.getElementById('chartCat'), {
+    type: 'doughnut',
+    data: {
+      labels: CAT.map(c => c.label),
+      datasets: [{ data: catData, backgroundColor: CAT.map(c => c.color), borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11 },
+            generateLabels: chart => chart.data.labels.map((label, i) => ({
+              text: label + '  —  ' + chart.data.datasets[0].data[i],
+              fillStyle: chart.data.datasets[0].backgroundColor[i],
+              strokeStyle: '#fff', lineWidth: 2, index: i
+            }))
+          }
+        },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed + ' entregables (' + Math.round(ctx.parsed / total * 100) + '%)' } }
+      }
+    }
+  });
+
+  // ── Chart 3: Instituciones apilado
+  new Chart(document.getElementById('chartInst'), {
+    type: 'bar',
+    data: {
+      labels: instArr.map(i => i.name),
+      datasets: CAT.map((c, ci) => ({
+        label: c.label,
+        data: instArr.map(i => i.cat[ci]),
+        backgroundColor: c.color, borderWidth: 0
+      }))
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, beginAtZero: true, grid: { color: '#e2e2de' }, border: { display: false }, ticks: { stepSize: 10 } },
+        y: { stacked: true, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+
+  // ── Tabla ranking
+  const maxRank = Math.max(...instArr.map(i => i.cat.reduce((a, b) => a + b, 0)));
+  document.getElementById('rankBody').innerHTML = instArr.map(({ name, cat }) => {
+    const n = cat.reduce((a, b) => a + b, 0);
+    return '<tr><td><div>' + name + '</div>' +
+      '<div class="bar-inline"><div class="bar-track"><div class="bar-fill" style="width:' +
+      Math.round(n / maxRank * 100) + '%"></div></div></div></td><td>' + n + '</td></tr>';
+  }).join('');
+
+  // ── Tabla cross-tab top 15
+  const tbl = document.getElementById('tblProy');
+  const headCells = CAT.map(c => '<th style="color:' + c.color + '">' + c.label + '</th>').join('');
+  const thead = '<thead><tr><th>Proyecto</th>' + headCells + '<th class="total-head">Total</th></tr></thead>';
+  const tbody = '<tbody>' + top15.map((row, i) => {
+    const cells = row.cats.map((n, ci) => {
       if (n === 0) return '<td class="zero">—</td>';
-      // resaltar valores altos con el color de la categoría
-      const bold   = n >= 4 ? 'font-weight:700;' : '';
-      const color  = n >= 4 ? 'color:' + CAT[ci].color + ';' : '';
+      const bold  = n >= 4 ? 'font-weight:700;' : '';
+      const color = n >= 4 ? 'color:' + CAT[ci].color + ';' : '';
       return '<td style="' + bold + color + '">' + n + '</td>';
     }).join('');
-    return '<tr>' +
-      '<td><span class="rank-n">' + (i + 1) + '</span>' + row.name + '</td>' +
-      cells +
-      '<td class="total-cell">' + row.total + '</td>' +
-      '</tr>';
+    return '<tr><td><span class="rank-n">' + (i + 1) + '</span>' + row.name + '</td>' +
+      cells + '<td class="total-cell">' + row.total + '</td></tr>';
   }).join('') + '</tbody>';
-
   tbl.innerHTML = thead + tbody;
-})();
 
-/* ── TABLA RANKING ── */
-const maxN = Math.max(...INST.map(i => i.cat.reduce((a, b) => a + b, 0)));
-document.getElementById('rankBody').innerHTML = INST.map(({ name, cat }) => {
-  const n = cat.reduce((a, b) => a + b, 0);
-  return '<tr><td><div>' + name + '</div><div class="bar-inline"><div class="bar-track"><div class="bar-fill" style="width:' + Math.round(n / maxN * 100) + '%"></div></div></div></td><td>' + n + '</td></tr>';
-}).join('');
+  // ── Tabla proyectos por institución × mes
+  document.getElementById('projBody').innerHTML = proyectosArr.map(({ inst, meses }) => {
+    const cells = meses.map(tags =>
+      tags.length === 0
+        ? '<span style="color:#bbb">—</span>'
+        : tags.map(t => '<span class="tag">' + t + '</span>').join('')
+    ).join('</td><td>');
+    return '<tr><td>' + inst + '</td><td>' + cells + '</td></tr>';
+  }).join('');
+}
 
-/* ── TABLA PROYECTOS ── */
-document.getElementById('projBody').innerHTML = PROYECTOS.map(({ inst, meses }) => {
-  const cells = meses.map(tags =>
-    tags.length === 0
-      ? '<span style="color:#bbb">—</span>'
-      : tags.map(t => '<span class="tag">' + t + '</span>').join('')
-  ).join('</td><td>');
-  return '<tr><td>' + inst + '</td><td>' + cells + '</td></tr>';
-}).join('');
+// ─────────────────────────────────────────────────────────────────
+//  ARRANQUE
+// ─────────────────────────────────────────────────────────────────
+loadAndRender();
 </script>
 </body>
 </html>
