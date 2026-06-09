@@ -249,17 +249,31 @@ async function loadAndRender() {
     // Cache-bust para que el browser no sirva datos viejos
     const resp = await fetch(CSV_URL + '&_t=' + Date.now());
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const text = await resp.text();
+    const raw = await resp.text();
+
+    // Limpiar BOM y normalizar saltos de línea (\r\n → \n)
+    const text = raw.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     const lines = text.trim().split('\n');
     if (lines.length < 2) throw new Error('CSV vacío o sin datos');
 
-    // Detectar columnas por nombre de header
+    // Detectar columnas por nombre; fallback a posiciones conocidas del Sheet
     const headers = parseCSVRow(lines[0]).map(h => h.trim().toLowerCase());
-    const colFecha = headers.findIndex(h => /fecha/.test(h));
-    const colInst  = headers.findIndex(h => /institu/.test(h));
-    const colProy  = headers.findIndex(h => /proyecto/.test(h));
-    const colCat   = headers.findIndex(h => /categor/.test(h));
+    console.log('[Dashboard] headers:', headers);
+    console.log('[Dashboard] fila 1:', parseCSVRow(lines[1]));
+
+    let colFecha = headers.findIndex(h => /fecha/.test(h));
+    let colInst  = headers.findIndex(h => /institu/.test(h));
+    let colProy  = headers.findIndex(h => /proyecto/.test(h));
+    let colCat   = headers.findIndex(h => /categor/.test(h));
+
+    // Posiciones conocidas del Google Sheet si la detección falla
+    if (colFecha < 0) colFecha = 0;
+    if (colInst  < 0) colInst  = 1;
+    if (colProy  < 0) colProy  = 2;
+    if (colCat   < 0) colCat   = 4;
+
+    console.log('[Dashboard] cols → fecha:', colFecha, 'inst:', colInst, 'proy:', colProy, 'cat:', colCat);
 
     // Acumuladores
     const mesCnt  = {};   // mesNum → count
@@ -332,7 +346,10 @@ async function loadAndRender() {
     const prevN      = prevMesNum ? (mesCnt[prevMesNum] || 0) : 0;
     const delta      = prevMesNum ? lastN - prevN : 0;
     const picoN      = Math.max(...Object.values(mesCnt));
-    const picoMes    = MES_NAMES[Number(Object.entries(mesCnt).find(([, n]) => n === picoN)[0]) - 1] + ' 2026';
+    const picoEntry  = Object.entries(mesCnt).find(([, n]) => n === picoN);
+    const picoMes    = picoEntry ? MES_NAMES[Number(picoEntry[0]) - 1] + ' 2026' : '';
+
+    console.log('[Dashboard] total:', total, '| filas procesadas:', mesData.reduce((a,b)=>a+b,0), '| insts:', nInst);
     const prom       = Math.round(total / activeMeses.length);
     const progressPct = Math.round(activeMeses.length / 12 * 1000) / 10;
 
