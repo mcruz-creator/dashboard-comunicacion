@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Comunicación — Entregables 2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f5f3; --surface: #ffffff; --border: #e2e2de;
+      --text: #1a1a18; --muted: #6b6b67; --accent: #1a3a5c; --accent2: #2d6a9f;
+      --green: #16a085; --red: #c0392b; --radius: 6px;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 40px 48px 64px; }
+
+    /* HEADER */
+    header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 36px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .header-left h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; }
+    .header-left p  { margin-top: 4px; font-size: 0.85rem; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+    .header-right   { text-align: right; font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .header-right strong { display: block; font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+
+    /* PROGRESS BAR ANUAL */
+    .progress-wrap { margin-bottom: 32px; }
+    .progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; font-size: 0.73rem; }
+    .progress-header span:first-child { font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .progress-header span:last-child { font-weight: 700; color: var(--accent); font-size: 0.85rem; }
+    .progress-track { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill  { height: 100%; background: var(--accent); border-radius: 3px; }
+    .progress-months { display: flex; justify-content: space-between; margin-top: 6px; }
+    .progress-months span { font-size: 0.68rem; color: var(--muted); }
+    .progress-months span.active { color: var(--accent); font-weight: 600; }
+
+    /* KPIS */
+    .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .kpi.accent { border-top: 3px solid var(--accent); }
+    .kpi-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .kpi-value { font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1; letter-spacing: -0.03em; }
+    .kpi-sub   { margin-top: 7px; font-size: 0.74rem; color: var(--muted); }
+    .delta { font-size: 0.72rem; font-weight: 600; margin-left: 4px; }
+    .delta.up   { color: var(--green); }
+    .delta.down { color: var(--red); }
+
+    /* GRID */
+    .grid-2   { display: grid; grid-template-columns: 1fr 1fr;  gap: 20px; margin-bottom: 20px; }
+    .grid-3-1 { display: grid; grid-template-columns: 2fr 1fr;  gap: 20px; margin-bottom: 20px; }
+
+    /* CARDS */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
+    .card:last-child { margin-bottom: 0; }
+    .card-title { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 22px; }
+
+    /* TABLA RANKING */
+    .inst-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .inst-table th { text-align: left; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); padding: 0 0 9px; border-bottom: 1px solid var(--border); }
+    .inst-table th:last-child { text-align: right; }
+    .inst-table td { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+    .inst-table td:last-child { text-align: right; font-weight: 600; color: var(--accent); }
+    .inst-table tr:last-child td { border-bottom: none; }
+    .bar-inline { display: flex; align-items: center; margin-top: 3px; }
+    .bar-track  { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .bar-fill   { height: 100%; background: var(--accent2); border-radius: 2px; }
+
+    /* TABLA PROYECTOS */
+    .proj-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .proj-table th { text-align: left; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); padding: 0 10px 9px 0; border-bottom: 1px solid var(--border); min-width: 90px; }
+    .proj-table th:first-child { min-width: 130px; padding-left: 0; }
+    .proj-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+    .proj-table td:first-child { font-weight: 600; padding-left: 0; color: var(--accent); }
+    .proj-table tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; background: #eef3f8; color: var(--accent); border-radius: 3px; font-size: 0.69rem; padding: 2px 7px; margin: 2px 2px 2px 0; font-weight: 500; }
+
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.74rem; color: var(--muted); display: flex; justify-content: space-between; }
+
+    /* TABLA CROSS-TAB PROYECTOS */
+    .crosstab { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .crosstab th { font-size: 0.63rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 0 10px 10px 0; border-bottom: 2px solid var(--border); text-align: right; white-space: nowrap; }
+    .crosstab th:first-child { text-align: left; min-width: 200px; padding-left: 0; }
+    .crosstab th.total-head { color: var(--accent); border-bottom-color: var(--accent); }
+    .crosstab td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border); text-align: right; vertical-align: middle; }
+    .crosstab td:first-child { text-align: left; padding-left: 0; }
+    .crosstab tr:last-child td { border-bottom: none; }
+    .crosstab .total-cell { font-weight: 700; color: var(--accent); font-size: 0.85rem; }
+    .crosstab .zero { color: #d0d0cc; }
+    .rank-n { display: inline-block; background: var(--accent); color: #fff; border-radius: 3px; font-size: 0.6rem; font-weight: 700; padding: 1px 5px; margin-right: 7px; vertical-align: middle; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <h1>Entregables de Comunicación 2026</h1>
+    <p>Área de Comunicación · Gerencia General</p>
+  </div>
+  <div class="header-right">
+    <strong id="hdr-total"></strong>
+    entregables registrados<br>
+    <span id="hdr-range"></span>
+  </div>
+</header>
+
+<!-- AVANCE ANUAL -->
+<div class="progress-wrap">
+  <div class="progress-header">
+    <span>Avance anual</span>
+    <span id="prog-label"></span>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+  <div class="progress-months" id="prog-months"></div>
+</div>
+
+<!-- KPIS -->
+<div class="kpi-row">
+  <div class="kpi accent">
+    <div class="kpi-label">Total Entregables</div>
+    <div class="kpi-value" id="kpi-total"></div>
+    <div class="kpi-sub" id="kpi-total-sub"></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Proyectos entregados</div>
+    <div class="kpi-value" id="kpi-activos"></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Instituciones</div>
+    <div class="kpi-value" id="kpi-inst"></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Pico mensual</div>
+    <div class="kpi-value" id="kpi-pico"></div>
+    <div class="kpi-sub" id="kpi-pico-sub"></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Promedio / mes</div>
+    <div class="kpi-value" id="kpi-prom"></div>
+    <div class="kpi-sub" id="kpi-prom-sub"></div>
+  </div>
+</div>
+
+<!-- FILA 1: Mensual + Categorías -->
+<div class="grid-2">
+  <div class="card" style="margin-bottom:0">
+    <div class="card-title">Entregables por mes</div>
+    <div style="position:relative;height:210px"><canvas id="chartMes"></canvas></div>
+  </div>
+  <div class="card" style="margin-bottom:0">
+    <div class="card-title">Distribución por categoría</div>
+    <div style="position:relative;height:210px"><canvas id="chartCat"></canvas></div>
+  </div>
+</div>
+
+<!-- FILA 2: Instituciones + Ranking -->
+<div class="grid-3-1" style="margin-top:20px">
+  <div class="card" style="margin-bottom:0">
+    <div class="card-title">Entregables por institución</div>
+    <div style="position:relative;height:300px"><canvas id="chartInst"></canvas></div>
+  </div>
+  <div class="card" style="margin-bottom:0">
+    <div class="card-title">Ranking</div>
+    <table class="inst-table">
+      <thead><tr><th>Institución</th><th>#</th></tr></thead>
+      <tbody id="rankBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FILA 3: Top 10 Proyectos × Categoría -->
+<div class="card" style="margin-top:20px">
+  <div class="card-title">Top 10 proyectos × categoría</div>
+  <table class="crosstab" id="tblProy"></table>
+</div>
+
+<!-- FILA 4: Tabla de proyectos -->
+<div class="card">
+  <div class="card-title" id="proj-title"></div>
+  <table class="proj-table">
+    <thead><tr id="proj-head"></tr></thead>
+    <tbody id="projBody"></tbody>
+  </table>
+</div>
+
+<footer>
+  <span>Área de Comunicación — Grupo Oroño</span>
+  <span id="footer-date"></span>
+</footer>
+
+<script>
+/* @@BEGIN_DATA@@ */
+const TOTAL         = 183;
+const RANGE_TEXT    = 'Enero — Mayo 2026';
+const FECHA_FOOTER  = 'Datos al 3 de junio de 2026';
+const PROGRESS_PCT  = 41.7;
+const ACTIVE_MONTHS = [1, 2, 3, 4, 5];
+const KPI_PICO_N    = 45;
+const KPI_PICO_MES  = 'Abril 2026';
+const KPI_PROM      = 37;
+const KPI_ACTIVOS   = 35;
+const KPI_LAST_N    = 37;
+const KPI_LAST_MES  = 'Mayo';
+const KPI_PREV_MES  = 'Abril';
+const KPI_DELTA     = -8;
+const N_INST        = 13;
+
+const CAT = [
+  { label: 'Gráficas',       color: '#1a3a5c' },
+  { label: 'Prensa',         color: '#c0392b' },
+  { label: 'Com Interna',    color: '#16a085' },
+  { label: 'Reels / Videos', color: '#8e44ad' },
+  { label: 'Web',            color: '#e67e22' },
+];
+
+const mesLabels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo'];
+const mesData   = [28, 32, 41, 45, 37];
+const mesDeltas = [null, +4, +9, +4, -8];
+const catData   = [45, 47, 35, 31, 25];
+
+const INST = [
+  { name: 'Grupo Oroño', cat: [10, 12, 18, 7, 5] },
+  { name: 'GO San Nicolás', cat: [10, 9, 2, 0, 2] },
+  { name: 'S. Parque', cat: [3, 9, 2, 6, 1] },
+  { name: 'S. Niños', cat: [3, 7, 5, 3, 3] },
+  { name: 'ICR', cat: [6, 2, 2, 4, 2] },
+  { name: 'DMO', cat: [4, 3, 4, 1, 3] },
+  { name: 'Elas', cat: [1, 0, 0, 5, 4] },
+  { name: 'Fertya', cat: [3, 0, 1, 3, 1] },
+  { name: 'Maternidad Oroño', cat: [3, 2, 0, 0, 2] },
+  { name: 'GO Sanatorio Funes', cat: [1, 3, 0, 2, 1] },
+  { name: 'GO Mutual', cat: [0, 0, 1, 0, 0] },
+  { name: 'GO Neuro', cat: [1, 0, 0, 0, 0] },
+  { name: 'GO Kinesio', cat: [0, 0, 0, 0, 1] },
+];
+
+const PROY_CAT = [
+  { name: 'tarea', cats: [14, 11, 18, 3, 11], total: 57 },
+  { name: 'Cirugía Robótica', cats: [2, 5, 0, 5, 1], total: 13 },
+  { name: 'Apertura de centro médico zona sur', cats: [4, 4, 1, 0, 2], total: 11 },
+  { name: 'Residencias 2026', cats: [3, 1, 2, 3, 1], total: 10 },
+  { name: 'Unidad de Trasplante', cats: [2, 4, 1, 1, 1], total: 9 },
+  { name: 'Circuito Predeportivo', cats: [2, 5, 0, 0, 1], total: 8 },
+  { name: 'Kermesse GO', cats: [0, 0, 5, 2, 0], total: 7 },
+  { name: 'Campaña Una vez al año', cats: [1, 0, 0, 5, 0], total: 6 },
+  { name: 'Campaña Ecografías', cats: [1, 2, 0, 1, 1], total: 5 },
+  { name: 'Ginecología infantojuvenil', cats: [0, 2, 1, 1, 1], total: 5 },
+  { name: 'Odontología', cats: [2, 1, 0, 0, 1], total: 4 },
+  { name: 'Campaña Vacunación', cats: [1, 2, 1, 0, 0], total: 4 },
+  { name: 'Licitación centro médico', cats: [1, 1, 1, 0, 0], total: 3 },
+  { name: 'Fertilidad con IA', cats: [0, 0, 0, 3, 0], total: 3 },
+  { name: 'Campaña Papel Cero', cats: [0, 0, 1, 2, 0], total: 3 },
+];
+
+const PROYECTOS = [
+  { inst: 'Grupo Oroño', meses: [['Circuito escolar', 'Kermesse GO', 'tarea'], ['Cabeza y cuello', 'Campaña Ecografías', 'Kermesse GO', 'Unidad de Trasplante', 'tarea'], ['Circuito Predeportivo', 'Cáncer de colon', 'Kermesse GO', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea'], ['Cáncer de colon', 'Día del trabajador', 'Kermesse GO', 'Residencias 2026', 'Unidad de mastología', 'tarea'], ['Prode 2026', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea']] },
+  { inst: 'GO San Nicolás', meses: [['Licitación centro médico', 'Odontología'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo'], [], ['Apertura de centro médico zona sur'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo', 'Odontología', 'tarea']] },
+  { inst: 'S. Parque', meses: [['Cirugía Robótica'], ['Cirugía Robótica'], ['Cabeza y cuello', 'Cirugía Robótica', 'tarea'], ['Cirugía Robótica', 'Unidad de Trasplante', 'tarea'], ['Cirugía Robótica', 'tarea']] },
+  { inst: 'S. Niños', meses: [['Circuito Predeportivo', 'tarea'], ['Ginecología infantojuvenil', 'Oncología infantil', 'tarea'], ['Campaña Vacunación', 'Ginecología infantojuvenil', 'tarea'], ['Ginecología infantojuvenil', 'tarea'], ['Unidad de Trasplante']] },
+  { inst: 'ICR', meses: [[], ['Campaña Papel Cero', 'Cámara Gamma'], ['Campaña Papel Cero', 'ICR Estrategia de productos', 'ICR Manual de marca', 'Insuficiencia cardíaca', 'Proceso de Certificación ISO', 'tarea'], ['Proceso de Certificación ISO'], ['Hipertensión arterial', 'tarea']] },
+  { inst: 'DMO', meses: [['tarea'], ['tarea'], ['Resonador IA', 'tarea'], ['tarea'], ['DMO Posicionamiento de marca']] },
+  { inst: 'Elas', meses: [['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['tarea'], ['Campaña Una vez al año']] },
+  { inst: 'Fertya', meses: [['Fertilidad con IA', 'tarea'], ['FE Manual de marca'], [], ['Nueva web Fertya'], ['Fertilidad con IA', 'Nueva web Fertya']] },
+  { inst: 'Maternidad Oroño', meses: [['MO Estrategia y re-diseño redes', 'tarea'], ['tarea'], [], [], ['MO Estrategia y re-diseño redes', 'Parto humanizado']] },
+  { inst: 'GO Sanatorio Funes', meses: [[], ['Campaña Ecografías'], ['Campaña Ecografías', 'Campaña Vacunación'], ['Campaña Ecografías', 'Funes Video institucional'], ['Campaña Ecografías', 'tarea']] },
+  { inst: 'GO Mutual', meses: [['tarea'], [], [], [], []] },
+  { inst: 'GO Neuro', meses: [[], [], ['tarea'], [], []] },
+  { inst: 'GO Kinesio', meses: [[], [], [], ['Apertura de centro médico zona sur'], []] },
+];
+/* @@END_DATA@@ */
+
+// ─────────────────────────────────────────────────────────────────
+//  CONSTANTES ESTÁTICAS
+// ─────────────────────────────────────────────────────────────────
+const MES_ABR = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// ─────────────────────────────────────────────────────────────────
+//  ACTUALIZACIÓN DEL DOM
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('hdr-total').textContent   = TOTAL;
+document.getElementById('hdr-range').textContent   = RANGE_TEXT;
+document.getElementById('prog-label').textContent  = ACTIVE_MONTHS.length + ' de 12 meses — ' + PROGRESS_PCT + '%';
+document.getElementById('prog-fill').style.width   = PROGRESS_PCT + '%';
+document.getElementById('prog-months').innerHTML   = MES_ABR.map((m, i) =>
+  '<span' + (ACTIVE_MONTHS.includes(i + 1) ? ' class="active"' : '') + '>' + m + '</span>'
+).join('');
+document.getElementById('kpi-total').textContent   = TOTAL;
+document.getElementById('kpi-total-sub').innerHTML =
+  KPI_LAST_MES + ': ' + KPI_LAST_N + ' <span class="delta ' +
+  (KPI_DELTA >= 0 ? 'up' : 'down') + '">' +
+  (KPI_DELTA >= 0 ? '↑' : '↓') + Math.abs(KPI_DELTA) +
+  ' vs ' + KPI_PREV_MES + '</span>';
+document.getElementById('kpi-activos').textContent = KPI_ACTIVOS;
+document.getElementById('kpi-inst').textContent    = N_INST;
+document.getElementById('kpi-pico').textContent    = KPI_PICO_N;
+document.getElementById('kpi-pico-sub').textContent= KPI_PICO_MES;
+document.getElementById('kpi-prom').textContent    = KPI_PROM;
+document.getElementById('kpi-prom-sub').textContent= 'Sobre ' + ACTIVE_MONTHS.length + ' meses';
+document.getElementById('footer-date').textContent = FECHA_FOOTER;
+document.getElementById('proj-title').textContent  = 'Proyectos por institución · ' + RANGE_TEXT;
+document.getElementById('proj-head').innerHTML =
+  '<th>Institución</th>' + mesLabels.map(l => '<th>' + l + '</th>').join('');
+
+// ─────────────────────────────────────────────────────────────────
+//  CHART.JS CONFIG
+// ─────────────────────────────────────────────────────────────────
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.color = '#6b6b67';
+
+/* ── CHART 1: Mensual con delta labels ── */
+const deltaPlugin = {
+  id: 'deltaLabels',
+  afterDatasetsDraw(chart) {
+    const { ctx, scales: { x, y } } = chart;
+    const meta = chart.getDatasetMeta(0);
+    meta.data.forEach((bar, i) => {
+      const d = mesDeltas[i];
+      if (d == null) return;
+      const label = (d > 0 ? '▲' : '▼') + Math.abs(d);
+      ctx.save();
+      ctx.font = '600 10px Segoe UI, sans-serif';
+      ctx.fillStyle = d >= 0 ? '#16a085' : '#c0392b';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, bar.x, bar.y - 6);
+      ctx.restore();
+    });
+  }
+};
+
+new Chart(document.getElementById('chartMes'), {
+  type: 'bar',
+  plugins: [deltaPlugin],
+  data: {
+    labels: mesLabels,
+    datasets: [{
+      data: mesData,
+      backgroundColor: ['#b8ddf0','#7ec8e3','#4a9fd4','#1a3a5c','#2d6a9f'],
+      borderRadius: 3, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false } },
+      y: { beginAtZero: true, grid: { color: '#e2e2de' }, border: { display: false }, ticks: { stepSize: 10 } }
+    }
+  }
+});
+
+/* ── CHART 2: Donut categorías ── */
+new Chart(document.getElementById('chartCat'), {
+  type: 'doughnut',
+  data: {
+    labels: CAT.map(c => c.label),
+    datasets: [{
+      data: catData,
+      backgroundColor: CAT.map(c => c.color),
+      borderWidth: 2, borderColor: '#fff', hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11 },
+          generateLabels: chart => {
+            const d = chart.data;
+            return d.labels.map((label, i) => ({
+              text: label + '  —  ' + d.datasets[0].data[i],
+              fillStyle: d.datasets[0].backgroundColor[i],
+              strokeStyle: '#fff', lineWidth: 2, index: i,
+            }));
+          }
+        }
+      },
+      tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed + ' entregables (' + Math.round(ctx.parsed / TOTAL * 100) + '%)' } }
+    }
+  }
+});
+
+/* ── CHART 3: Instituciones apilado ── */
+new Chart(document.getElementById('chartInst'), {
+  type: 'bar',
+  data: {
+    labels: INST.map(i => i.name),
+    datasets: CAT.map((c, ci) => ({
+      label: c.label, data: INST.map(i => i.cat[ci]),
+      backgroundColor: c.color, borderWidth: 0,
+    }))
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11 } } } },
+    scales: {
+      x: { stacked: true, beginAtZero: true, grid: { color: '#e2e2de' }, border: { display: false }, ticks: { stepSize: 10 } },
+      y: { stacked: true, grid: { display: false }, border: { display: false } }
+    }
+  }
+});
+
+/* ── TABLA CROSS-TAB: Top 10 Proyectos × Categoría ── */
+(function() {
+  const tbl = document.getElementById('tblProy');
+  if (!tbl || !PROY_CAT) return;
+
+  // Encabezado
+  const headCells = CAT.map(c =>
+    '<th style="color:' + c.color + '">' + c.label + '</th>'
+  ).join('');
+  const thead = '<thead><tr><th>Proyecto</th>' + headCells + '<th class="total-head">Total</th></tr></thead>';
+
+  // Filas
+  const tbody = '<tbody>' + PROY_CAT.map(function(row, i) {
+    const cells = row.cats.map(function(n, ci) {
+      if (n === 0) return '<td class="zero">—</td>';
+      // resaltar valores altos con el color de la categoría
+      const bold   = n >= 4 ? 'font-weight:700;' : '';
+      const color  = n >= 4 ? 'color:' + CAT[ci].color + ';' : '';
+      return '<td style="' + bold + color + '">' + n + '</td>';
+    }).join('');
+    return '<tr>' +
+      '<td><span class="rank-n">' + (i + 1) + '</span>' + row.name + '</td>' +
+      cells +
+      '<td class="total-cell">' + row.total + '</td>' +
+      '</tr>';
+  }).join('') + '</tbody>';
+
+  tbl.innerHTML = thead + tbody;
+})();
+
+/* ── TABLA RANKING ── */
+const maxN = Math.max(...INST.map(i => i.cat.reduce((a, b) => a + b, 0)));
+document.getElementById('rankBody').innerHTML = INST.map(({ name, cat }) => {
+  const n = cat.reduce((a, b) => a + b, 0);
+  return '<tr><td><div>' + name + '</div><div class="bar-inline"><div class="bar-track"><div class="bar-fill" style="width:' + Math.round(n / maxN * 100) + '%"></div></div></div></td><td>' + n + '</td></tr>';
+}).join('');
+
+/* ── TABLA PROYECTOS ── */
+document.getElementById('projBody').innerHTML = PROYECTOS.map(({ inst, meses }) => {
+  const cells = meses.map(tags =>
+    tags.length === 0
+      ? '<span style="color:#bbb">—</span>'
+      : tags.map(t => '<span class="tag">' + t + '</span>').join('')
+  ).join('</td><td>');
+  return '<tr><td>' + inst + '</td><td>' + cells + '</td></tr>';
+}).join('');
+</script>
+</body>
+</html>
