@@ -188,19 +188,19 @@
 
 <script>
 /* @@BEGIN_DATA@@ */
-const TOTAL         = 183;
-const RANGE_TEXT    = 'Enero — Mayo 2026';
-const FECHA_FOOTER  = 'Datos al 3 de junio de 2026';
-const PROGRESS_PCT  = 41.7;
-const ACTIVE_MONTHS = [1, 2, 3, 4, 5];
-const KPI_PICO_N    = 45;
+const TOTAL         = 184;
+const RANGE_TEXT    = 'Enero — Junio 2026';
+const FECHA_FOOTER  = 'Datos al 9 de junio de 2026';
+const PROGRESS_PCT  = 50.0;
+const ACTIVE_MONTHS = [1, 2, 3, 4, 5, 6];
+const KPI_PICO_N    = 44;
 const KPI_PICO_MES  = 'Abril 2026';
-const KPI_PROM      = 37;
+const KPI_PROM      = 31;
 const KPI_ACTIVOS   = 35;
-const KPI_LAST_N    = 37;
-const KPI_LAST_MES  = 'Mayo';
-const KPI_PREV_MES  = 'Abril';
-const KPI_DELTA     = -8;
+const KPI_LAST_N    = 1;
+const KPI_LAST_MES  = 'Junio';
+const KPI_PREV_MES  = 'Mayo';
+const KPI_DELTA     = -37;
 const N_INST        = 13;
 
 const CAT = [
@@ -211,15 +211,15 @@ const CAT = [
   { label: 'Web',            color: '#e67e22' },
 ];
 
-const mesLabels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo'];
-const mesData   = [28, 32, 41, 45, 37];
-const mesDeltas = [null, +4, +9, +4, -8];
-const catData   = [45, 47, 35, 31, 25];
+const mesLabels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'];
+const mesData   = [28, 32, 41, 44, 38, 1];
+const mesDeltas = [null, +4, +9, +3, -6, -37];
+const catData   = [45, 48, 36, 30, 25];
 
 const INST = [
-  { name: 'Grupo Oroño', cat: [10, 12, 18, 7, 5] },
+  { name: 'Grupo Oroño', cat: [10, 12, 19, 7, 5] },
   { name: 'GO San Nicolás', cat: [10, 9, 2, 0, 2] },
-  { name: 'S. Parque', cat: [3, 9, 2, 6, 1] },
+  { name: 'S. Parque', cat: [3, 10, 2, 5, 1] },
   { name: 'S. Niños', cat: [3, 7, 5, 3, 3] },
   { name: 'ICR', cat: [6, 2, 2, 4, 2] },
   { name: 'DMO', cat: [4, 3, 4, 1, 3] },
@@ -234,7 +234,7 @@ const INST = [
 
 const PROY_CAT = [
   { name: 'tarea', cats: [14, 11, 18, 3, 11], total: 57 },
-  { name: 'Cirugía Robótica', cats: [2, 5, 0, 5, 1], total: 13 },
+  { name: 'Cirugía Robótica', cats: [2, 6, 0, 4, 1], total: 13 },
   { name: 'Apertura de centro médico zona sur', cats: [4, 4, 1, 0, 2], total: 11 },
   { name: 'Residencias 2026', cats: [3, 1, 2, 3, 1], total: 10 },
   { name: 'Unidad de Trasplante', cats: [2, 4, 1, 1, 1], total: 9 },
@@ -251,19 +251,19 @@ const PROY_CAT = [
 ];
 
 const PROYECTOS = [
-  { inst: 'Grupo Oroño', meses: [['Circuito escolar', 'Kermesse GO', 'tarea'], ['Cabeza y cuello', 'Campaña Ecografías', 'Kermesse GO', 'Unidad de Trasplante', 'tarea'], ['Circuito Predeportivo', 'Cáncer de colon', 'Kermesse GO', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea'], ['Cáncer de colon', 'Día del trabajador', 'Kermesse GO', 'Residencias 2026', 'Unidad de mastología', 'tarea'], ['Prode 2026', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea']] },
-  { inst: 'GO San Nicolás', meses: [['Licitación centro médico', 'Odontología'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo'], [], ['Apertura de centro médico zona sur'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo', 'Odontología', 'tarea']] },
-  { inst: 'S. Parque', meses: [['Cirugía Robótica'], ['Cirugía Robótica'], ['Cabeza y cuello', 'Cirugía Robótica', 'tarea'], ['Cirugía Robótica', 'Unidad de Trasplante', 'tarea'], ['Cirugía Robótica', 'tarea']] },
-  { inst: 'S. Niños', meses: [['Circuito Predeportivo', 'tarea'], ['Ginecología infantojuvenil', 'Oncología infantil', 'tarea'], ['Campaña Vacunación', 'Ginecología infantojuvenil', 'tarea'], ['Ginecología infantojuvenil', 'tarea'], ['Unidad de Trasplante']] },
-  { inst: 'ICR', meses: [[], ['Campaña Papel Cero', 'Cámara Gamma'], ['Campaña Papel Cero', 'ICR Estrategia de productos', 'ICR Manual de marca', 'Insuficiencia cardíaca', 'Proceso de Certificación ISO', 'tarea'], ['Proceso de Certificación ISO'], ['Hipertensión arterial', 'tarea']] },
-  { inst: 'DMO', meses: [['tarea'], ['tarea'], ['Resonador IA', 'tarea'], ['tarea'], ['DMO Posicionamiento de marca']] },
-  { inst: 'Elas', meses: [['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['tarea'], ['Campaña Una vez al año']] },
-  { inst: 'Fertya', meses: [['Fertilidad con IA', 'tarea'], ['FE Manual de marca'], [], ['Nueva web Fertya'], ['Fertilidad con IA', 'Nueva web Fertya']] },
-  { inst: 'Maternidad Oroño', meses: [['MO Estrategia y re-diseño redes', 'tarea'], ['tarea'], [], [], ['MO Estrategia y re-diseño redes', 'Parto humanizado']] },
-  { inst: 'GO Sanatorio Funes', meses: [[], ['Campaña Ecografías'], ['Campaña Ecografías', 'Campaña Vacunación'], ['Campaña Ecografías', 'Funes Video institucional'], ['Campaña Ecografías', 'tarea']] },
-  { inst: 'GO Mutual', meses: [['tarea'], [], [], [], []] },
-  { inst: 'GO Neuro', meses: [[], [], ['tarea'], [], []] },
-  { inst: 'GO Kinesio', meses: [[], [], [], ['Apertura de centro médico zona sur'], []] },
+  { inst: 'Grupo Oroño', meses: [['Circuito escolar', 'Kermesse GO', 'tarea'], ['Cabeza y cuello', 'Campaña Ecografías', 'Kermesse GO', 'Unidad de Trasplante', 'tarea'], ['Circuito Predeportivo', 'Cáncer de colon', 'Kermesse GO', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea'], ['Cáncer de colon', 'Día del trabajador', 'Kermesse GO', 'Residencias 2026', 'Unidad de mastología', 'tarea'], ['Prode 2026', 'Residencias 2026', 'Unidad de Trasplante', 'Unidad de mastología', 'tarea'], ['Prode 2026']] },
+  { inst: 'GO San Nicolás', meses: [['Licitación centro médico', 'Odontología'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo'], [], ['Apertura de centro médico zona sur'], ['Apertura de centro médico zona sur', 'Circuito Predeportivo', 'Odontología', 'tarea'], []] },
+  { inst: 'S. Parque', meses: [['Cirugía Robótica'], ['Cirugía Robótica'], ['Cabeza y cuello', 'Cirugía Robótica', 'tarea'], ['Unidad de Trasplante', 'tarea'], ['Cirugía Robótica', 'tarea'], []] },
+  { inst: 'S. Niños', meses: [['Circuito Predeportivo', 'tarea'], ['Ginecología infantojuvenil', 'Oncología infantil', 'tarea'], ['Campaña Vacunación', 'Ginecología infantojuvenil', 'tarea'], ['Ginecología infantojuvenil', 'tarea'], ['Unidad de Trasplante'], []] },
+  { inst: 'ICR', meses: [[], ['Campaña Papel Cero', 'Cámara Gamma'], ['Campaña Papel Cero', 'ICR Estrategia de productos', 'ICR Manual de marca', 'Insuficiencia cardíaca', 'Proceso de Certificación ISO', 'tarea'], ['Proceso de Certificación ISO'], ['Hipertensión arterial', 'tarea'], []] },
+  { inst: 'DMO', meses: [['tarea'], ['tarea'], ['Resonador IA', 'tarea'], ['tarea'], ['DMO Posicionamiento de marca'], []] },
+  { inst: 'Elas', meses: [['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['Campaña Una vez al año', 'tarea'], ['tarea'], ['Campaña Una vez al año'], []] },
+  { inst: 'Fertya', meses: [['Fertilidad con IA', 'tarea'], ['FE Manual de marca'], [], ['Nueva web Fertya'], ['Fertilidad con IA', 'Nueva web Fertya'], []] },
+  { inst: 'Maternidad Oroño', meses: [['MO Estrategia y re-diseño redes', 'tarea'], ['tarea'], [], [], ['MO Estrategia y re-diseño redes', 'Parto humanizado'], []] },
+  { inst: 'GO Sanatorio Funes', meses: [[], ['Campaña Ecografías'], ['Campaña Ecografías', 'Campaña Vacunación'], ['Campaña Ecografías', 'Funes Video institucional'], ['Campaña Ecografías', 'tarea'], []] },
+  { inst: 'GO Mutual', meses: [['tarea'], [], [], [], [], []] },
+  { inst: 'GO Neuro', meses: [[], [], ['tarea'], [], [], []] },
+  { inst: 'GO Kinesio', meses: [[], [], [], ['Apertura de centro médico zona sur'], [], []] },
 ];
 /* @@END_DATA@@ */
 
