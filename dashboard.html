@@ -185,12 +185,21 @@
   <table class="crosstab" id="tblProy"></table>
 </div>
 
-<!-- FILA 4: Tabla de proyectos -->
+<!-- FILA 4: Tabla de proyectos (sin Com Interna) -->
 <div class="card">
   <div class="card-title" id="proj-title"></div>
   <table class="proj-table">
     <thead><tr id="proj-head"></tr></thead>
     <tbody id="projBody"></tbody>
+  </table>
+</div>
+
+<!-- FILA 5: Tabla Com Interna -->
+<div class="card">
+  <div class="card-title" id="proj-ci-title"></div>
+  <table class="proj-table">
+    <thead><tr id="proj-ci-head"></tr></thead>
+    <tbody id="projCIBody"></tbody>
   </table>
 </div>
 
@@ -281,6 +290,7 @@ async function loadAndRender() {
     const instMap = {};   // inst   → { total, cats:{cat→n} }
     const proyMap = {};   // proy   → { total, cats:{cat→n} }
     const instMes = {};   // inst   → mesNum → Set<proy>
+    const instMesCI = {};  // inst   → mesNum → Set<proy> (solo Com Interna)
 
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
@@ -316,11 +326,17 @@ async function loadAndRender() {
         if (cat) proyMap[proy].cats[cat] = (proyMap[proy].cats[cat] || 0) + 1;
       }
 
-      // inst × mes
-      if (inst) {
-        if (!instMes[inst]) instMes[inst] = {};
-        if (!instMes[inst][mesNum]) instMes[inst][mesNum] = new Set();
-        if (proy) instMes[inst][mesNum].add(proy);
+      // inst × mes (separado por Com Interna vs resto)
+      if (inst && proy) {
+        if (cat === 'Com Interna') {
+          if (!instMesCI[inst]) instMesCI[inst] = {};
+          if (!instMesCI[inst][mesNum]) instMesCI[inst][mesNum] = new Set();
+          instMesCI[inst][mesNum].add(proy);
+        } else {
+          if (!instMes[inst]) instMes[inst] = {};
+          if (!instMes[inst][mesNum]) instMes[inst][mesNum] = new Set();
+          instMes[inst][mesNum].add(proy);
+        }
       }
     }
 
@@ -376,14 +392,27 @@ async function loadAndRender() {
         total: d.total
       }));
 
-    // ── Tabla proyectos por institución × mes
-    const proyectosArr = instArr.map(({ name: inst }) => ({
-      inst,
-      meses: activeMeses.map(m => {
-        const s = instMes[inst] && instMes[inst][m];
-        return s ? [...s].sort() : [];
-      })
-    }));
+    // ── Tabla proyectos por institución × mes (sin Com Interna)
+    const proyectosArr = instArr
+      .map(({ name: inst }) => ({
+        inst,
+        meses: activeMeses.map(m => {
+          const s = instMes[inst] && instMes[inst][m];
+          return s ? [...s].sort() : [];
+        })
+      }))
+      .filter(r => r.meses.some(m => m.length > 0));
+
+    // ── Tabla Com Interna por institución × mes
+    const proyectosCIArr = instArr
+      .map(({ name: inst }) => ({
+        inst,
+        meses: activeMeses.map(m => {
+          const s = instMesCI[inst] && instMesCI[inst][m];
+          return s ? [...s].sort() : [];
+        })
+      }))
+      .filter(r => r.meses.some(m => m.length > 0));
 
     // Ocultar overlay
     overlay.classList.add('hidden');
@@ -391,7 +420,7 @@ async function loadAndRender() {
     render({
       total, rangeText, fechaFooter, progressPct,
       activeMeses, mesLabels, mesData, mesDeltas, barColors,
-      catData, instArr, top15, proyectosArr,
+      catData, instArr, top15, proyectosArr, proyectosCIArr,
       nInst, proyActivos, lastN,
       lastMesLabel: MES_NAMES[lastMesNum - 1],
       prevMesLabel: prevMesNum ? MES_NAMES[prevMesNum - 1] : '',
@@ -411,7 +440,7 @@ function render(d) {
   const {
     total, rangeText, fechaFooter, progressPct,
     activeMeses, mesLabels, mesData, mesDeltas, barColors,
-    catData, instArr, top15, proyectosArr,
+    catData, instArr, top15, proyectosArr, proyectosCIArr,
     nInst, proyActivos, lastN, lastMesLabel, prevMesLabel,
     delta, picoN, picoMes, prom
   } = d;
@@ -555,8 +584,21 @@ function render(d) {
   }).join('') + '</tbody>';
   tbl.innerHTML = thead + tbody;
 
-  // ── Tabla proyectos por institución × mes
+  // ── Tabla proyectos por institución × mes (sin Com Interna)
   document.getElementById('projBody').innerHTML = proyectosArr.map(({ inst, meses }) => {
+    const cells = meses.map(tags =>
+      tags.length === 0
+        ? '<span style="color:#bbb">—</span>'
+        : tags.map(t => '<span class="tag">' + t + '</span>').join('')
+    ).join('</td><td>');
+    return '<tr><td>' + inst + '</td><td>' + cells + '</td></tr>';
+  }).join('');
+
+  // ── Tabla Com Interna por institución × mes
+  document.getElementById('proj-ci-title').textContent = 'Comunicación Interna — Proyectos por institución × mes';
+  const ciHead = '<th>Institución</th>' + mesLabels.map(m => '<th>' + m + '</th>').join('');
+  document.getElementById('proj-ci-head').innerHTML = ciHead;
+  document.getElementById('projCIBody').innerHTML = proyectosCIArr.map(({ inst, meses }) => {
     const cells = meses.map(tags =>
       tags.length === 0
         ? '<span style="color:#bbb">—</span>'
