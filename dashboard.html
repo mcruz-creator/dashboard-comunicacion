@@ -275,11 +275,13 @@ async function loadAndRender() {
     let colInst  = headers.findIndex(h => /institu/.test(h));
     let colProy  = headers.findIndex(h => /proyecto/.test(h));
     let colCat   = headers.findIndex(h => /categor/.test(h));
+    let colTema  = headers.findIndex(h => /^tema$/.test(h));
 
     // Posiciones conocidas del Google Sheet si la detección falla
     if (colFecha < 0) colFecha = 0;
     if (colInst  < 0) colInst  = 1;
     if (colProy  < 0) colProy  = 2;
+    if (colTema  < 0) colTema  = 3;
     if (colCat   < 0) colCat   = 4;
 
     console.log('[Dashboard] cols → fecha:', colFecha, 'inst:', colInst, 'proy:', colProy, 'cat:', colCat);
@@ -299,6 +301,7 @@ async function loadAndRender() {
       const fechaRaw = (colFecha >= 0 ? row[colFecha] : '').trim();
       const inst     = (colInst  >= 0 ? row[colInst]  : '').trim();
       const proy     = (colProy  >= 0 ? row[colProy]  : '').trim();
+      const tema     = (colTema  >= 0 ? row[colTema]  : '').trim();
       const cat      = (colCat   >= 0 ? row[colCat]   : '').trim();
 
       const mMatch = fechaRaw.match(/^([a-záéíóú]+)/i);
@@ -331,7 +334,7 @@ async function loadAndRender() {
         if (cat === 'Com Interna') {
           if (!instMesCI[inst]) instMesCI[inst] = {};
           if (!instMesCI[inst][mesNum]) instMesCI[inst][mesNum] = new Set();
-          instMesCI[inst][mesNum].add(proy);
+          if (tema) instMesCI[inst][mesNum].add(tema);
         } else {
           if (!instMes[inst]) instMes[inst] = {};
           if (!instMes[inst][mesNum]) instMes[inst][mesNum] = new Set();
